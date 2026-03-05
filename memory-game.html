@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>משחק זיכרון - זמרות מפורסמות</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #f9a8d4, #c084fc, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .stats {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 22px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 14px 36px;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    #moves-count { color: #f9a8d4; }
+    #timer { color: #86efac; }
+    #matches-count { color: #fbbf24; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    button {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.5px;
+    }
+
+    #restart-btn {
+      background: linear-gradient(135deg, #c084fc, #818cf8);
+      color: #fff;
+    }
+
+    #restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(192, 132, 252, 0.4);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(6, 130px);
+      gap: 14px;
+    }
+
+    .card {
+      width: 130px;
+      height: 160px;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched .card-back {
+      animation: matchPulse 0.5s ease forwards;
+    }
+
+    @keyframes matchPulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* Card front (hidden face) */
+    .card-front {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d1b69 100%);
+      border: 2px solid rgba(192, 132, 252, 0.3);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .card-front-icon {
+      font-size: 3rem;
+      opacity: 0.6;
+    }
+
+    .card-front-stars {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.3);
+      margin-top: 6px;
+      letter-spacing: 4px;
+    }
+
+    /* Card back (revealed face) */
+    .card-back {
+      transform: rotateY(180deg);
+      border: 2px solid rgba(255,255,255,0.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
+      border-radius: 14px;
+    }
+
+    .card-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 6px 6px 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.82));
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      line-height: 1.3;
+      border-radius: 0 0 14px 14px;
+    }
+
+    .card.matched .card-back {
+      border-color: rgba(255,255,255,0.6);
+      box-shadow: 0 0 20px var(--glow-color, rgba(255,255,255,0.3));
+    }
+
+    /* Overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .win-box {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      border: 2px solid rgba(192, 132, 252, 0.5);
+      border-radius: 24px;
+      padding: 48px 60px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .win-trophy { font-size: 4rem; margin-bottom: 16px; }
+
+    .win-title {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #fbbf24, #f9a8d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .win-stats {
+      font-size: 1.1rem;
+      color: #cbd5e1;
+      margin-bottom: 28px;
+      line-height: 2;
+    }
+
+    .win-stats span {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .win-btn {
+      background: linear-gradient(135deg, #f9a8d4, #c084fc);
+      color: #1e1b4b;
+      font-size: 1.1rem;
+      padding: 14px 40px;
+      border-radius: 14px;
+    }
+
+    .win-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(249, 168, 212, 0.4);
+    }
+
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    @media (max-width: 900px) {
+      .board {
+        grid-template-columns: repeat(4, 110px);
+      }
+      .card { width: 110px; height: 140px; }
+    }
+
+    @media (max-width: 540px) {
+      .board {
+        grid-template-columns: repeat(3, 95px);
+        gap: 10px;
+      }
+      .card { width: 95px; height: 120px; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>משחק הזיכרון</h1>
+  <p class="subtitle">גלה את הזוגות - זמרות מפורסמות בכל הזמנים</p>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-label">מהלכים</span>
+      <span class="stat-value" id="moves-count">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">זמן</span>
+      <span class="stat-value" id="timer">00:00</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">זוגות</span>
+      <span class="stat-value" id="matches-count">0/12</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="restart-btn">משחק חדש</button>
+  </div>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="board" id="board"></div>
+
+  <div class="overlay" id="win-overlay">
+    <div class="win-box">
+      <div class="win-trophy">🏆</div>
+      <div class="win-title">כל הכבוד!</div>
+      <div class="win-stats">
+        מצאת את כל הזוגות ב-<span id="win-moves"></span> מהלכים<br>
+        בזמן של <span id="win-time"></span>
+      </div>
+      <button class="win-btn" id="play-again-btn">שחק שוב</button>
+    </div>
+  </div>
+
+  <script>
+    const SINGERS = [
+      { name: "פינק",             image: "משחק זיכרון תמונות/פינק.jpg",            color: "#ec4899", glow: "rgba(236,72,153,0.5)" },
+      { name: "מדונה",            image: "משחק זיכרון תמונות/מדונה.jpg",           color: "#a855f7", glow: "rgba(168,85,247,0.5)" },
+      { name: "אדל",              image: "משחק זיכרון תמונות/אדל.jpg",             color: "#475569", glow: "rgba(71,85,105,0.5)" },
+      { name: "לנה דל ריי",       image: "משחק זיכרון תמונות/לנה_דל_ריי.jpg",     color: "#7c3aed", glow: "rgba(124,58,237,0.5)" },
+      { name: "איימי וויינהאוס",  image: "משחק זיכרון תמונות/איימי_ווייןהאוס.jpg",color: "#b45309", glow: "rgba(180,83,9,0.5)" },
+      { name: "ביונסה",           image: "משחק זיכרון תמונות/ביונסה.jpg",          color: "#d97706", glow: "rgba(217,119,6,0.5)" },
+      { name: "ריהאנה",           image: "משחק זיכרון תמונות/ריהאנה.jpg",          color: "#dc2626", glow: "rgba(220,38,38,0.5)" },
+      { name: "סלין דיון",        image: "משחק זיכרון תמונות/סליןדיון.jpg",        color: "#2563eb", glow: "rgba(37,99,235,0.5)" },
+      { name: "ליידי גאגא",       image: "משחק זיכרון תמונות/לידיגהגה.jpg",        color: "#db2777", glow: "rgba(219,39,119,0.5)" },
+      { name: "טיילור סוויפט",    image: "משחק זיכרון תמונות/טיילור_סוויפט.jpg",   color: "#16a34a", glow: "rgba(22,163,74,0.5)" },
+      { name: "אריאנה גרנדה",     image: "משחק זיכרון תמונות/אריאנה_גרנדה.jpg",   color: "#9333ea", glow: "rgba(147,51,234,0.5)" },
+      { name: "וויטני יוסטון",    image: "משחק זיכרון תמונות/וויטני_יוסטון.jpg",   color: "#ca8a04", glow: "rgba(202,138,4,0.5)" },
+    ];
+
+    // ── Audio ──────────────────────────────────────────────
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new AudioCtx();
+      return audioCtx;
+    }
+
+    function playTone(frequency, type, duration, volume = 0.25, delay = 0) {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(frequency, ctx.currentTime + delay);
+      gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + duration + 0.05);
+    }
+
+    function soundFlip() {
+      playTone(600, 'sine', 0.08, 0.15);
+    }
+
+    function soundMatch() {
+      playTone(523, 'sine', 0.15, 0.3);
+      playTone(659, 'sine', 0.15, 0.3, 0.15);
+      playTone(784, 'sine', 0.25, 0.3, 0.30);
+    }
+
+    function soundMiss() {
+      playTone(220, 'triangle', 0.2, 0.2);
+      playTone(180, 'triangle', 0.2, 0.15, 0.1);
+    }
+
+    function soundWin() {
+      const notes = [523, 659, 784, 1047, 784, 1047, 1319];
+      notes.forEach((freq, i) => playTone(freq, 'sine', 0.25, 0.35, i * 0.13));
+    }
+
+    // ── Confetti ───────────────────────────────────────────
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimId = null;
+
+    const CONFETTI_COLORS = [
+      '#f9a8d4','#c084fc','#818cf8','#fbbf24',
+      '#34d399','#60a5fa','#f87171','#a78bfa'
+    ];
+
+    function launchConfetti() {
+      confettiCanvas.width  = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      confettiParticles = [];
+
+      for (let i = 0; i < 180; i++) {
+        confettiParticles.push({
+          x:     Math.random() * confettiCanvas.width,
+          y:     -10 - Math.random() * 200,
+          w:     6 + Math.random() * 8,
+          h:     10 + Math.random() * 6,
+          color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+          angle: Math.random() * Math.PI * 2,
+          spin:  (Math.random() - 0.5) * 0.2,
+          vx:    (Math.random() - 0.5) * 3,
+          vy:    2 + Math.random() * 4,
+          alpha: 1,
+        });
+      }
+      if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      let alive = false;
+      confettiParticles.forEach(p => {
+        p.x     += p.vx;
+        p.y     += p.vy;
+        p.angle += p.spin;
+        p.vy    += 0.05;
+        if (p.y > confettiCanvas.height * 0.85) p.alpha -= 0.025;
+
+        if (p.alpha > 0) {
+          alive = true;
+          confettiCtx.save();
+          confettiCtx.globalAlpha = Math.max(0, p.alpha);
+          confettiCtx.translate(p.x, p.y);
+          confettiCtx.rotate(p.angle);
+          confettiCtx.fillStyle = p.color;
+          confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          confettiCtx.restore();
+        }
+      });
+      if (alive) {
+        confettiAnimId = requestAnimationFrame(animateConfetti);
+      } else {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      }
+    }
+
+    // ──────────────────────────────────────────────────────
+    let flipped = [];
+    let matched = 0;
+    let moves = 0;
+    let locked = false;
+    let timerInterval = null;
+    let seconds = 0;
+    let gameStarted = false;
+
+    const board = document.getElementById('board');
+    const movesEl = document.getElementById('moves-count');
+    const timerEl = document.getElementById('timer');
+    const matchesEl = document.getElementById('matches-count');
+    const overlay = document.getElementById('win-overlay');
+    const winMoves = document.getElementById('win-moves');
+    const winTime = document.getElementById('win-time');
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60).toString().padStart(2, '0');
+      const sec = (s % 60).toString().padStart(2, '0');
+      return `${m}:${sec}`;
+    }
+
+    function startTimer() {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        seconds++;
+        timerEl.textContent = formatTime(seconds);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function createCard(singer, index) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.index = index;
+      card.dataset.name = singer.name;
+
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-front">
+            <div class="card-front-icon">🎤</div>
+            <div class="card-front-stars">* * *</div>
+          </div>
+          <div class="card-back" style="--glow-color: ${singer.glow}; background: linear-gradient(135deg, ${singer.color}99, ${singer.color}44);">
+            <img class="card-img" src="${singer.image}" alt="${singer.name}" />
+            <div class="card-name">${singer.name}</div>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => handleFlip(card));
+      return card;
+    }
+
+    function handleFlip(card) {
+      if (locked) return;
+      if (card.classList.contains('flipped')) return;
+      if (card.classList.contains('matched')) return;
+
+      if (!gameStarted) {
+        gameStarted = true;
+        startTimer();
+      }
+
+      soundFlip();
+      card.classList.add('flipped');
+      flipped.push(card);
+
+      if (flipped.length === 2) {
+        locked = true;
+        moves++;
+        movesEl.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [a, b] = flipped;
+      if (a.dataset.name === b.dataset.name) {
+        soundMatch();
+        a.classList.add('matched');
+        b.classList.add('matched');
+        matched++;
+        matchesEl.textContent = `${matched}/12`;
+        flipped = [];
+        locked = false;
+
+        if (matched === 12) {
+          stopTimer();
+          setTimeout(showWin, 600);
+        }
+      } else {
+        setTimeout(() => {
+          soundMiss();
+          a.classList.remove('flipped');
+          b.classList.remove('flipped');
+          flipped = [];
+          locked = false;
+        }, 900);
+      }
+    }
+
+    function showWin() {
+      winMoves.textContent = moves;
+      winTime.textContent = formatTime(seconds);
+      soundWin();
+      launchConfetti();
+      overlay.classList.add('active');
+    }
+
+    function initGame() {
+      board.innerHTML = '';
+      flipped = [];
+      matched = 0;
+      moves = 0;
+      gameStarted = false;
+      seconds = 0;
+      stopTimer();
+      overlay.classList.remove('active');
+
+      movesEl.textContent = '0';
+      timerEl.textContent = '00:00';
+      matchesEl.textContent = '0/12';
+
+      const cards = shuffle([...SINGERS, ...SINGERS]);
+      cards.forEach((singer, i) => {
+        board.appendChild(createCard(singer, i));
+      });
+    }
+
+    document.getElementById('restart-btn').addEventListener('click', initGame);
+    document.getElementById('play-again-btn').addEventListener('click', initGame);
+
+    initGame();
+  </script>
+</body>
+</html>
